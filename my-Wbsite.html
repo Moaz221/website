@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دوري URI 25</title>
+    <!-- Chosen Palette: "Turquoise & White Harmony" - A clean, refreshing, and modern theme using shades of turquoise (teal/emerald) as primary accent colors, complemented by crisp white and light gray backgrounds for clarity and professionalism. Dark gray/black for text ensures high readability. -->
+    <!-- Application Structure Plan: A single-page application (SPA) designed as a comprehensive interactive dashboard for the league. The structure now includes a top navigation bar with five main sections: 'Home' (overview, goals, and countdown), 'Leaderboards' (with sub-tabs for Teams and Individuals, including a chart visualization), 'League Plan' (a new section detailing the overall league timeline and objectives in interactive, collapsible panels), 'Titles' (showcasing all awards in an interactive table with emojis), 'Challenges & Games' (presenting daily games/challenges in interactive cards), and 'Rules & Registration' (for detailed rules in an interactive table format and the registration link). This structure was chosen to provide a highly organized, intuitive, and engaging user experience, allowing participants to easily navigate, understand the league's mechanics, track their progress, and interact with the daily activities, thereby maximizing engagement and clarity. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: League Goals & Introduction -> Goal: Inform & Motivate -> Viz: Prominent text blocks. Interaction: Clear, concise messaging. Justification: Sets the tone and purpose of the league immediately.
+        - Report Info: Team & Individual rankings -> Goal: Compare & Track Progress -> Viz: Interactive Bar Chart (Chart.js) for top teams & two dynamic HTML Tables for detailed leaderboards. Interaction: Tabs to switch views. Justification: Provides both a quick visual summary and detailed data for competitive tracking.
+        - Report Info: League Timeline (Start, Daily, End) -> Goal: Inform & Guide -> Viz: Accordion/collapsible panels for key phases. Interaction: Click to expand/collapse. Justification: Presents sequential information in a manageable, user-friendly way.
+        - Report Info: Point system & Titles -> Goal: Organize & Inform -> Viz: Interactive HTML Table for point system, and another interactive HTML Table for titles with emojis. Interaction: Table provides clear mapping of criteria to rewards. Justification: Breaks down complex rules and awards into easily scannable, visually appealing, and digestible information, preventing user overload and enhancing understanding.
+        - Report Info: Challenges & Games -> Goal: Engage & Inform -> Viz: Interactive cards with Unicode icons/emojis. Interaction: Cards are clickable for potential future detail. Justification: Presents activities in an attractive and easy-to-browse format.
+        - Report Info: League timeline countdown -> Goal: Create Urgency -> Viz: Dynamic countdown timer (JS). Interaction: None. Justification: Builds excitement and clearly communicates the start date.
+        - Report Info: Registration Link -> Goal: Call to Action -> Viz: Prominent button. Interaction: Click navigates to form. Justification: Simplifies the registration process.
+        Library/Method: Chart.js for canvas-based charts, Vanilla JS for all interactions (tab switching, accordion, DOM manipulation). -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        .active-nav {
+            background-color: #20B2AA; /* LightSeaGreen, a shade of turquoise */
+            color: #FFFFFF; /* White */
+        }
+        .nav-item {
+            transition: all 0.3s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 350px;
+            width: 100%;
+            max-width: 700px;
+        }
+        .section-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        .section-card:hover {
+            transform: translateY(-5px);
+        }
+        .accordion-header {
+            background-color: #E0F2F7; /* Light turquoise background */
+            color: #008080; /* Darker turquoise text */
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .accordion-header:hover {
+            background-color: #B2EBF2; /* Lighter turquoise on hover */
+        }
+        .accordion-content {
+            background-color: #F0F8FF; /* AliceBlue */
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+        }
+        .accordion-content.open {
+            max-height: 500px; /* Adjust as needed for content */
+            padding: 1rem 1.5rem;
+        }
+        .rule-table-row, .title-table-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr; /* Adjust as needed for content */
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px dashed #E0F2F7;
+        }
+        .rule-table-row:last-child, .title-table-row:last-child {
+            border-bottom: none;
+        }
+        .rule-table-header, .title-table-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 0.5rem;
+            padding: 0.75rem 0;
+            font-weight: bold;
+            color: #008080;
+            border-bottom: 2px solid #008080;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="container mx-auto max-w-6xl p-4">
+        
+        <!-- Header -->
+        <header class="text-center py-8 bg-white rounded-t-xl shadow-lg" style="background-image: linear-gradient(to right, #20B2AA, #48D1CC); color: white;">
+            <h1 class="text-4xl md:text-5xl font-black">دوري URI 25</h1>
+            <p class="mt-2 text-lg md:text-xl text-white">تعلم، استمتع، ونافس... عصر جديد من المتعة</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bg-gray-800 shadow-md flex flex-wrap justify-center p-2 rounded-b-xl mb-8">
+            <button data-tab="home" class="nav-item active-nav py-2 px-4 m-1 rounded-full font-bold">الرئيسية</button>
+            <button data-tab="leaderboard" class="nav-item text-white hover:bg-gray-700 py-2 px-4 m-1 rounded-full font-bold">لوحة الصدارة</button>
+            <button data-tab="plan" class="nav-item text-white hover:bg-gray-700 py-2 px-4 m-1 rounded-full font-bold">خطة الدوري</button>
+            <button data-tab="titles" class="nav-item text-white hover:bg-gray-700 py-2 px-4 m-1 rounded-full font-bold">الألقاب</button>
+            <button data-tab="challenges-games" class="nav-item text-white hover:bg-gray-700 py-2 px-4 m-1 rounded-full font-bold">التحديات والألعاب</button>
+            <button data-tab="rules" class="nav-item text-white hover:bg-gray-700 py-2 px-4 m-1 rounded-full font-bold">القواعد والتسجيل</button>
+        </nav>
+
+        <main>
+            <!-- Home Section -->
+            <section id="home" class="content-section">
+                <div class="section-card text-center">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">أهلاً بك في ساحة المنافسة!</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
+                        نحن على وشك إطلاق تجربة فريدة لتحويل دورتنا التعليمية إلى رحلة تفاعلية مليئة بالحماس والمرح. يهدف دوري URI 25 إلى تشجيعك على السرعة، الجودة، وزيادة التفاعل على صفحة الفيسبوك، وتطبيق أساليب التعلم باللعب وأحدث وسائل التطبيق العلمي الممتعة التي تلائم الجيل الجديد. استعد لإظهار مهاراتك، اكتساب ألقاب مميزة، وقيادة فريقك نحو القمة!
+                    </p>
+                    <div class="bg-teal-100 border-l-4 border-teal-500 text-teal-700 p-4 rounded-lg my-6">
+                         <div class="font-bold text-xl">الدوري ينطلق قريباً!</div>
+                         <div id="countdown" class="text-3xl font-black mt-2" dir="ltr"></div>
+                    </div>
+                    <a href="https://forms.gle/reV9p5k7222sd7DY7" target="_blank" class="inline-block bg-teal-500 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-teal-600 transition-transform transform hover:scale-105 shadow-lg">
+                        🚀 سجل الآن في الدوري
+                    </a>
+                </div>
+            </section>
+
+            <!-- Leaderboard Section -->
+            <section id="leaderboard" class="content-section hidden">
+                <div class="section-card">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">لوحة الصدارة</h2>
+                     <p class="text-center text-gray-600 mb-6">
+                        هنا تشتعل المنافسة! تابع ترتيب الفرق والأفراد لحظة بلحظة. يمكنك التبديل بين عرض "صدارة الفرق" الذي يتضمن رسماً بيانياً لأقوى الفرق، و"صدارة الأفراد" لمعرفة من هم النجوم الصاعدون في الدوري.
+                    </p>
+                    <div class="flex justify-center mb-6 border-b-2 pb-2">
+                        <button id="showTeams" class="py-2 px-6 font-semibold border-b-4 border-teal-500 text-teal-700">صدارة الفرق</button>
+                        <button id="showIndividuals" class="py-2 px-6 font-semibold text-gray-500">صدارة الأفراد</button>
+                    </div>
+
+                    <div id="teamsContent">
+                        <div class="chart-container mb-8">
+                            <canvas id="teamsChart"></canvas>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-800 text-white">
+                                    <tr>
+                                        <th class="py-3 px-4 text-right">الترتيب</th>
+                                        <th class="py-3 px-4 text-right">الفريق</th>
+                                        <th class="py-3 px-4 text-right">اللقب</th>
+                                        <th class="py-3 px-4 text-right">النقاط</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teamsTableBody" class="text-gray-700">
+                                    <!-- JS will populate this -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="individualsContent" class="hidden">
+                         <div class="mb-4 text-center">
+                            <label for="teamFilter" class="font-bold text-gray-800 text-lg mr-2">فلترة حسب الفريق:</label>
+                            <select id="teamFilter" class="p-2 border border-gray-300 rounded-lg">
+                                <option value="all">الكل</option>
+                                <option value="فريق المستقبل">فريق المستقبل</option>
+                                <option value="فريق النجوم">فريق النجوم</option>
+                                <option value="فريق الأبطال">فريق الأبطال</option>
+                                <option value="فريق الإبداع">فريق الإبداع</option>
+                                <option value="فريق الرواد">فريق الرواد</option>
+                                <option value="فريق الصقور">فريق الصقور</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                             <table class="min-w-full bg-white">
+                                <thead class="bg-gray-800 text-white">
+                                    <tr>
+                                        <th class="py-3 px-4 text-right">الترتيب</th>
+                                        <th class="py-3 px-4 text-right">الطالب</th>
+                                        <th class="py-3 px-4 text-right">الفريق</th>
+                                        <th class="py-3 px-4 text-right">الألقاب</th>
+                                        <th class="py-3 px-4 text-right">النقاط</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="individualsTableBody" class="text-gray-700">
+                                    <!-- JS will populate this -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- League Plan Section -->
+            <section id="plan" class="content-section hidden">
+                <div class="section-card">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">خطة دوري URI 25: الأهداف والرؤية</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto mb-8 text-center">
+                        يهدف دوري URI 25 إلى تحويل النصف الثاني من دورة البحث العلمي، وكذلك الجولات القادمة من URI، إلى تجربة تعليمية تفاعلية، تنافسية، ومليئة بالحماس والمرح. رؤيتنا هي خلق بيئة محفزة تشجع على السرعة، الجودة، وزيادة التفاعل على صفحة الفيسبوك، وتطبيق أساليب التعلم باللعب وأحدث وسائل التطبيق العلمي الممتعة التي تلائم الجيل الجديد.
+                    </p>
+
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">خطة البداية، الإعلان، النهاية، والتكريم</h3>
+                    <div id="leagueTimelineContainer" class="space-y-4">
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <span>الإعلان والبداية 🚀</span>
+                                <span>&#9660;</span>
+                            </div>
+                            <div class="accordion-content">
+                                <ul class="list-disc list-inside ml-4 space-y-1 text-gray-700">
+                                    <li>يوم 12 يوليو: بوست "اللعبة بدأت للتو"، فيديو تشويقي، إعلان قواعد اللعبة.</li>
+                                    <li>يوم 13 يوليو: الانطلاق الرسمي للدوري.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <span>التتبع اليومي 📅</span>
+                                <span>&#9660;</span>
+                            </div>
+                            <div class="accordion-content">
+                                <ul class="list-disc list-inside ml-4 space-y-1 text-gray-700">
+                                    <li>يومياً الساعة 12 صباحاً: سيتم نشر بوست بترتيب الفرق المتنافسة.</li>
+                                    <li>يومياً: إطلاق التحدي الجديد لليوم.</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <div class="accordion-header">
+                                <span>النهاية والتكريم 🎉</span>
+                                <span>&#9660;</span>
+                            </div>
+                            <div class="accordion-content">
+                                <ul class="list-disc list-inside ml-4 space-y-1 text-gray-700">
+                                    <li>يوم 22 يوليو: نهاية الدوري.</li>
+                                    <li>بعد النهاية: تكريم الفائزين، نشر بوستات تهنئة للأفراد والفرق الحاصلة على الألقاب.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Titles Section -->
+            <section id="titles" class="content-section hidden">
+                <div class="section-card">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">الألقاب الفردية والجماعية</h2>
+                    <p class="text-center text-gray-600 mb-8">
+                       التميز لا يمر مرور الكرام! هنا تجد جميع الألقاب التي يمكنك الفوز بها، من ألقاب السرعة والجودة إلى ألقاب التفاعل على الفيسبوك. كل لقب يمثل إنجازاً فريداً، فهل أنت مستعد لتكون أسطورة؟
+                    </p>
+                    
+                    <div id="titlesTableContainer" class="overflow-x-auto">
+                        <div class="title-table-header">
+                            <div>اللقب</div>
+                            <div>المهمة المطلوبة</div>
+                            <div>النقاط المكتسبة</div>
+                        </div>
+                        <div id="titlesTableBody" class="text-gray-700">
+                            <!-- JS will populate this -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Challenges & Games Section -->
+            <section id="challenges-games" class="content-section hidden">
+                <div class="section-card">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">التحديات والألعاب اليومية</h2>
+                    <p class="text-center text-gray-600 mb-8">
+                       استعد للمرح والتعلم! هذه التحديات والألعاب اليومية مصممة لتعزيز مهاراتك في البحث العلمي بطريقة مبتكرة وتفاعلية. شارك، تنافس، واجمع المزيد من النقاط لفريقك.
+                    </p>
+                    <div id="challengesContainer" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- JS will populate this -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rules Section -->
+            <section id="rules" class="content-section hidden">
+                 <div class="section-card">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">القواعد والتسجيل</h2>
+                    <p class="text-center text-gray-600 mb-8">
+                        لكل لعبة قواعدها! تعرف هنا على كل التفاصيل المتعلقة بنظام النقاط الفردية والجماعية، هيكل الفرق، وقواعد التبديل الهامة. فهمك لهذه القواعد هو خطوتك الأولى نحو وضع استراتيجية الفوز.
+                    </p>
+                    <div id="rulesContainer" class="space-y-6">
+                         <!-- JS will populate this -->
+                    </div>
+                     <div class="text-center mt-10">
+                         <a href="https://forms.gle/reV9p5k7222sd7DY7" target="_blank" class="inline-block bg-teal-500 text-white font-bold py-3 px-8 rounded-full text-lg hover:bg-teal-600 transition-transform transform hover:scale-105 shadow-lg">
+                            📝 رابط التسجيل في الدوري
+                        </a>
+                     </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="text-center text-gray-500 mt-8 py-4">
+             &copy; 2025 دوري URI 25 | تم تصميمه لإلهام الجيل القادم من الباحثين.
+        </footer>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- DATA ---
+            const data = {
+                teams: [
+                    { name: 'فريق المستقبل', points: 320, title: 'فريق الأساطير' },
+                    { name: 'فريق النجوم', points: 250, title: 'فريق النخبة' },
+                    { name: 'فريق الأبطال', points: 180, title: 'فريق النخبة' },
+                    { name: 'فريق الإبداع', points: 120, title: 'فريق الرواد' },
+                    { name: 'فريق الرواد', points: 90, title: 'فريق الرواد' },
+                    { name: 'فريق الصقور', points: 65, title: 'لا يوجد' },
+                ],
+                individuals: [
+                    { name: 'زينب فؤاد', team: 'فريق المستقبل', points: 100, titles: ['أسطورة السرعة', 'أسطورة الإلهام الرقمي'] },
+                    { name: 'نور الدين', team: 'فريق النجوم', points: 95, titles: ['الإمبراطور', 'الظاهرة'] },
+                    { name: 'يوسف خالد', team: 'فريق الأبطال', points: 85, titles: ['ملك اللعبة', 'صقر العلوم'] },
+                    { name: 'علي حسن', team: 'فريق المستقبل', points: 80, titles: ['عملاق نشر العلوم'] },
+                    { name: 'ريم سعيد', team: 'فريق المستقبل', points: 75, titles: ['موقد الشرارة'] },
+                    { name: 'ليلى سعيد', team: 'فريق النجوم', points: 70, titles: ['المعجزة'] },
+                    { name: 'طارق صلاح', team: 'فريق الإبداع', points: 65, titles: ['سفير البحث العلمي'] },
+                ],
+                titles: [
+                    { category: 'ألقاب السرعة', icon: '⚡', items: [
+                        { name: 'سهم المعرفة', criteria: 'تسليم 3 مهمات بسرعة (خلال 12 ساعة)', bonus: '+3 نقاط', emoji: '🏹' },
+                        { name: 'صقر العلوم', criteria: 'تسليم 7 مهمات بسرعة (خلال 12 ساعة)', bonus: '+5 نقاط', emoji: '🦅' },
+                        { name: 'الظاهرة', criteria: 'تسليم 12 مهمة بسرعة (خلال 12 ساعة)', bonus: '+10 نقاط', emoji: '🌠' },
+                        { name: 'أسطورة السرعة', criteria: 'تسليم 16 مهمة بسرعة (خلال 12 ساعة)', bonus: '+10 نقاط', emoji: '💨' },
+                    ]},
+                    { category: 'ألقاب الجودة', icon: '✨', items: [
+                        { name: 'المبدع', criteria: 'تسليم مهمة بجودة جيدة جداً لمدة 3 أيام', bonus: '+3 نقاط', emoji: '🎨' },
+                        { name: 'الخبير', criteria: 'تسليم مهمة بجودة جيدة جداً لمدة 7 أيام', bonus: '+5 نقاط', emoji: '🧠' },
+                        { name: 'المعجزة', criteria: 'تسليم مهمة بجودة جيدة جداً لمدة 14 يوماً', bonus: '+10 نقاط', emoji: '🌟' },
+                        { name: 'ملك اللعبة', criteria: 'تسليم مهمة بجودة ممتازة لمدة 8 أيام', bonus: '+15 نقطة', emoji: '👑' },
+                        { name: 'الإمبراطور', criteria: 'تسليم مهمة بجودة ممتازة لمدة 14 يوماً', bonus: '+20 نقطة', emoji: '🏰' },
+                    ]},
+                    { category: 'ألقاب التفاعل (فيسبوك)', icon: '💬', items: [
+                        { name: 'محرك النقاشات', criteria: 'عمل 15 تعليقاً على صفحة الفيسبوك', bonus: '+3 نقاط', emoji: '🗣' },
+                        { name: 'موقد الشرارة', criteria: 'عمل 50 تعليقاً على صفحة الفيسبوك', bonus: '+5 نقاط', emoji: '🔥' },
+                        { name: 'أسطورة الإلهام الرقمي', criteria: 'عمل 100 تعليق على صفحة الفيسبوك', bonus: '+10 نقاط', emoji: '💡' },
+                    ]},
+                    { category: 'ألقاب المشاركة (فيسبوك)', icon: '📢', items: [
+                        { name: 'سفير البحث العلمي', criteria: 'عمل 3 مشاركات لمنشورات على صفحة الفيسبوك', bonus: '+3 نقاط', emoji: '🌐' },
+                        { name: 'رائد التوعية', criteria: 'عمل 7 مشاركات لمنشورات على صفحة الفيسبوك', bonus: '+3 نقاط', emoji: '🧭' },
+                        { name: 'عملاق نشر العلوم', criteria: 'عمل 15 مشاركة لمنشورات على صفحة الفيسبوك', bonus: '+10 نقاط', emoji: '📚' },
+                    ]},
+                    { category: 'الألقاب الجماعية', icon: '🏆', items: [
+                        { name: 'فريق الرواد', criteria: 'الحصول على مجموع 70 نقطة', bonus: '+3 نقاط', level: 'المستوى الأول', emoji: '🏅' },
+                        { name: 'فريق النخبة', criteria: 'الحصول على مجموع 150 نقطة', bonus: '+5 نقاط', level: 'المستوى الثاني', emoji: '🎖' },
+                        { name: 'فريق الأساطير', criteria: 'الحصول على مجموع 300 نقطة', bonus: '+10 نقاط', level: 'المستوى الثالث', emoji: '👑' },
+                    ]},
+                ],
+                challenges: [
+                    { name: 'قيادات وقدوات', icon: '🧑‍🔬', description: 'تعرف على شخصيات ملهمة في البحث العلمي واكتشف معلومة رائعة ومميزة عنهم.', goal: 'إلهام الطلاب وتعريفهم بالنماذج الناجحة.', reward: 'نقاط إضافية' },
+                    { name: 'المحقق العلمي', icon: '🔍', description: 'لعبة كلمات متقاطعة أو ألغاز يومية. عليك معرفة الكلمة وكتابتها في التعليقات.', goal: 'ترسيخ المصطلحات العلمية بطريقة ممتعة.', reward: 'نقاط إضافية لأكثر فريق يعلق.' },
+                    { name: 'ساعد ماجد', icon: '💡', description: 'قصة عن "ماجد" الذي يكتب بحثاً علمياً ويقع في أخطاء. عليك إيجاد حلول لمشكلاته.', goal: 'تطبيق المفاهيم النظرية وتنمية مهارات حل المشكلات.', reward: 'نقاط بناءً على جودة الحلول.' },
+                    { name: 'تحدي البحث السريع', icon: '⏱', description: 'تحدٍ يومي مصغر للعثور على معلومة محددة أو تعريف لمصطلح في وقت قصير جداً (مثلاً 30 دقيقة).', goal: 'تنمية مهارات البحث السريع واسترجاع المعلومات بكفاءة.', reward: 'نقاط إضافية لأول إجابة صحيحة.' },
+                    { name: 'معركة الأفكار', icon: '🧠', description: 'يتم طرح مشكلة بحثية، وتقوم الفرق باقتراح حلول أو مقاربات مبتكرة لها.', goal: 'تعزيز التفكير النقدي، الإبداع، ومهارات حل المشكلات الجماعية.', reward: 'نقاط لأفضل فكرة أو حل.' },
+                    { name: 'ناقد الأقران', icon: '✍', description: 'مراجعة مهمة (مجهولة المصدر) من فريق آخر وتقديم ملاحظات بناءة عليها.', goal: 'تعليم مهارات المراجعة النقدية وأهميتها في البحث العلمي.', reward: 'نقاط بناءً على جودة الملاحظات.' },
+                ],
+                dailyPlan: [ 
+                    { day: 1, date: '13 يوليو 2025', video: 'مقدمة في البحث العلمي وأنواعه', task: 'تحديد موضوع بحث مبدئي', challenge: 'قيادات وقدوات' },
+                    { day: 2, date: '14 يوليو 2025', video: 'أدوات جمع البيانات: الاستبيانات والمقابلات', task: 'تصميم استبيان قصير لموضوعك', challenge: 'المحقق العلمي' },
+                    { day: 3, date: '15 يوليو 2025', video: 'أساسيات التحليل الإحصائي للبيانات', task: 'تحليل مجموعة بيانات بسيطة (مقدمة)', challenge: 'ساعد ماجد' },
+                    { day: 4, date: '16 يوليو 2025', video: 'كتابة المراجعة الأدبية (Literature Review)', task: 'كتابة فقرة مراجعة أدبية لموضوعك', challenge: 'تحدي البحث السريع' },
+                    { day: 5, date: '17 يوليو 2025', video: 'أخلاقيات البحث العلمي والاقتباس', task: 'تحديد 3 مصادر موثوقة لموضوعك وكتابة اقتباس صحيح', challenge: 'معركة الأفكار' },
+                    { day: 6, date: '18 يوليو 2025', video: 'عرض النتائج وتفسيرها', task: 'إنشاء رسم بياني بسيط لنتائج وهمية', challenge: 'ناقد الأقران' },
+                    { day: 7, date: '19 يوليو 2025', video: 'كتابة الملخص والمقدمة والخاتمة', task: 'كتابة مسودة لملخص بحثك', challenge: 'قيادات وقدوات (جديد)' },
+                    { day: 8, date: '20 يوليو 2025', video: 'نصائح لتقديم البحث العلمي بفعالية', task: 'تحضير عرض تقديمي قصير لبحثك (باوربوينت/فيديو)', challenge: 'المحقق العلمي (جديد)' },
+                ],
+                rules: [
+                    {
+                        title: 'نظام النقاط الفردية',
+                        icon: '🌟',
+                        details: [
+                            { criterion: 'تسليم المهمة بسرعة (خلال 12 ساعة)', reward: '1 نقطة', emoji: '⏱' },
+                            { criterion: 'تسليم مهمة متقنة بجودة جيدة جداً', reward: '2 نقطة', emoji: '✅' },
+                            { criterion: 'تسليم مهمة ممتازة (فيديو/بوستر/باوربوينت)', reward: '3 نقاط', emoji: '💎' },
+                            { criterion: 'عمل 5 تعليقات على صفحة الفيسبوك', reward: '1 نقطة', emoji: '💬' },
+                            { criterion: 'مشاركة منشور بهاشتاج #URI_League25', reward: '1 نقطة', emoji: '📣' },
+                        ]
+                    },
+                    {
+                        title: 'نظام النقاط الجماعية',
+                        icon: ' ',
+                        details: [
+                            { criterion: 'أكثر من 90% من الفريق يسلم خلال 12 ساعة', reward: '+3 نقاط للفريق', emoji: '🚀' },
+                            { criterion: 'أكثر من 70% من الفريق يسلم بجودة جيدة جداً', reward: '+3 نقاط للفريق', emoji: '✨' },
+                            { criterion: 'أكثر من 50% من الفريق يسلم بجودة متقنة خلال 12 ساعة', reward: '+3 نقاط للفريق', emoji: '🎯' },
+                        ],
+                        note: 'إجمالي نقاط الفريق = مجموع نقاط أعضائه + النقاط الجماعية.'
+                    },
+                    {
+                        title: 'هيكل الفرق والتبديلات',
+                        icon: '👥',
+                        content: `
+                            <ul class="list-disc list-inside space-y-2">
+                                <li>يتكون كل فريق منافس من 5 إلى 7 طلاب من المجموعة الأساسية.</li>
+                                <li>لكل فريق 3 تبديلات كحد أقصى خلال الدوري.</li>
+                                <li>باقي الطلاب في كل جروب الذين لم يشاركوا في الدوري هم بمثابة <strong class="text-red-600">دكة الاحتياط</strong>، سيقومون بتسليم تاسكاتهم ولكن لن تحسب من ضمن نقاط الجروب إلا إذا طلب قائد الفريق تبديل عضو بآخر. سيؤدي ذلك إلى رفع روح الحماس عند الطلاب على دكة الاحتياط عند رؤية زملائهم يتم تكريمهم بألقاب فردية وجماعية، وأيضاً يجعل الطلاب داخل الدوري يبذلون قصارى جهدهم لكي لا يتم استبدالهم.</li>
+                                <li>العضو المستبدل لا يمكنه العودة للدوري.</li>
+                            </ul>`
+                    }
+                ]
+            };
+            
+            // --- ELEMENTS ---
+            const navButtons = document.querySelectorAll('.nav-item');
+            const contentSections = document.querySelectorAll('.content-section');
+            const teamsTableBody = document.getElementById('teamsTableBody');
+            const individualsTableBody = document.getElementById('individualsTableBody');
+            const showTeamsBtn = document.getElementById('showTeams');
+            const showIndividualsBtn = document.getElementById('showIndividuals');
+            const teamsContent = document.getElementById('teamsContent');
+            const individualsContent = document.getElementById('individualsContent');
+            const titlesTableBody = document.getElementById('titlesTableBody'); // Changed from titlesContainer
+            const challengesContainer = document.getElementById('challengesContainer');
+            const rulesContainer = document.getElementById('rulesContainer');
+            const countdownEl = document.getElementById('countdown');
+            const leagueTimelineContainer = document.getElementById('leagueTimelineContainer'); // New element for timeline accordions
+            const teamFilterSelect = document.getElementById('teamFilter');
+
+            let teamsChart = null;
+
+            // --- FUNCTIONS ---
+            function switchTab(tabId) {
+                contentSections.forEach(section => {
+                    section.classList.add('hidden');
+                });
+                document.getElementById(tabId).classList.remove('hidden');
+
+                navButtons.forEach(button => {
+                    button.classList.remove('active-nav');
+                    button.classList.add('text-white', 'hover:bg-gray-700');
+                    if (button.dataset.tab === tabId) {
+                        button.classList.add('active-nav');
+                        button.classList.remove('text-white', 'hover:bg-gray-700');
+                    }
+                });
+                
+                if (tabId === 'leaderboard' && !teamsChart) {
+                    renderTeamsChart();
+                }
+            }
+
+            function getMedal(index) {
+                if (index === 0) return '🥇';
+                if (index === 1) return '🥈';
+                if (index === 2) return '🥉';
+                return index + 1;
+            }
+
+            function renderLeaderboards() {
+                // Teams
+                const sortedTeams = [...data.teams].sort((a,b) => b.points - a.points);
+                teamsTableBody.innerHTML = sortedTeams.map((team, index) => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4 font-bold text-lg">${getMedal(index)}</td>
+                        <td class="py-3 px-4 font-bold">${team.name}</td>
+                        <td class="py-3 px-4"><span class="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${team.title}</span></td>
+                        <td class="py-3 px-4 font-bold text-teal-600">${team.points}</td>
+                    </tr>
+                `).join('');
+
+                // Individuals (Initial render)
+                renderIndividualsTable(teamFilterSelect.value);
+            }
+
+            function renderIndividualsTable(filterTeam) {
+                let filteredIndividuals = [...data.individuals];
+                if (filterTeam !== 'all') {
+                    filteredIndividuals = filteredIndividuals.filter(p => p.team === filterTeam);
+                }
+                const sortedIndividuals = filteredIndividuals.sort((a, b) => b.points - a.points);
+
+                individualsTableBody.innerHTML = sortedIndividuals.map((p, index) => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4 font-bold text-lg">${getMedal(index)}</td>
+                        <td class="py-3 px-4 font-bold">${p.name}</td>
+                        <td class="py-3 px-4">${p.team}</td>
+                        <td class="py-3 px-4">${p.titles.map(t => <span class="bg-green-100 text-green-800 text-xs font-medium m-0.5 px-2.5 py-0.5 rounded-full">${t}</span>).join('') || 'لا يوجد'}</td>
+                        <td class="py-3 px-4 font-bold text-teal-600">${p.points}</td>
+                    </tr>
+                `).join('');
+            }
+
+            function renderTeamsChart() {
+                const ctx = document.getElementById('teamsChart').getContext('2d');
+                const sortedTeams = [...data.teams].sort((a,b) => b.points - a.points).slice(0, 5);
+                
+                teamsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedTeams.map(t => t.name),
+                        datasets: [{
+                            label: 'نقاط الفرق',
+                            data: sortedTeams.map(t => t.points),
+                            backgroundColor: [
+                                'rgba(32, 178, 170, 0.7)', /* LightSeaGreen */
+                                'rgba(72, 209, 204, 0.7)', /* MediumTurquoise */
+                                'rgba(64, 224, 208, 0.7)', /* Turquoise */
+                                'rgba(0, 128, 128, 0.7)',  /* Teal */
+                                'rgba(0, 206, 209, 0.7)'   /* DarkTurquoise */
+                            ],
+                            borderColor: [
+                                'rgba(32, 178, 170, 1)',
+                                'rgba(72, 209, 204, 1)',
+                                'rgba(64, 224, 208, 1)',
+                                'rgba(0, 128, 128, 1)',
+                                'rgba(0, 206, 209, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'أقوى 5 فرق في الدوري',
+                                font: {
+                                    size: 18,
+                                    family: 'Cairo'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            function renderTitlesTable() {
+                let html = '';
+                data.titles.forEach(category => {
+                    html += `
+                        <div class="col-span-full text-center py-4 bg-teal-50 text-teal-800 font-bold text-xl rounded-lg mt-4 mb-2">
+                            ${category.icon} ${category.category}
+                        </div>
+                    `;
+                    category.items.forEach(item => {
+                        html += `
+                            <div class="title-table-row">
+                                <div class="font-semibold text-gray-700 flex items-center">
+                                    <span class="text-xl mr-2">${item.emoji}</span> ${item.name}
+                                </div>
+                                <div class="text-gray-600">${item.criteria}</div>
+                                <div class="text-teal-600 font-bold text-left">${item.bonus}</div>
+                            </div>
+                        `;
+                    });
+                });
+                titlesTableBody.innerHTML = html;
+            }
+
+            function renderChallengesGames() {
+                challengesContainer.innerHTML = data.challenges.map(challenge => `
+                    <div class="bg-gray-50 p-4 rounded-lg shadow-sm border-l-4 border-emerald-400">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 flex items-center">
+                            <span class="text-2xl mr-2">${challenge.icon}</span> ${challenge.name}
+                        </h3>
+                        <p class="text-gray-600 mb-2">${challenge.description}</p>
+                        <p class="text-sm text-gray-500"><strong>الهدف:</strong> ${challenge.goal}</p>
+                        <p class="text-sm text-gray-500"><strong>المكافأة:</strong> ${challenge.reward}</p>
+                    </div>
+                `).join('');
+            }
+            
+            function renderRules() {
+                rulesContainer.innerHTML = data.rules.map(rule => `
+                     <div class="bg-gray-50 p-4 rounded-lg shadow-sm border-l-4 border-teal-400">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2 flex items-center">
+                            <span class="text-2xl mr-2">${rule.icon}</span> ${rule.title}
+                        </h3>
+                        ${rule.details ? `
+                            <div class="space-y-2 mt-4">
+                                <div class="rule-table-header">
+                                    <div>المعيار</div>
+                                    <div>المكافأة</div>
+                                </div>
+                                ${rule.details.map(detail => `
+                                    <div class="rule-table-row">
+                                        <div class="font-semibold text-gray-700 flex items-center">
+                                            <span class="text-xl mr-2">${detail.emoji}</span> ${detail.criterion}
+                                        </div>
+                                        <div class="text-teal-600 font-bold text-left">${detail.reward}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${rule.note ? <p class="mt-4 text-sm text-gray-500">${rule.note}</p> : ''}
+                        ` : `
+                            <div class="text-gray-600">${rule.content}</div>
+                        `}
+                    </div>
+                `).join('');
+            }
+
+            function setupAccordion(containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return; // Exit if container doesn't exist
+
+                container.querySelectorAll('.accordion-header').forEach(header => {
+                    header.addEventListener('click', () => {
+                        const content = header.nextElementSibling;
+                        content.classList.toggle('open');
+                        header.querySelector('span:last-child').innerHTML = content.classList.contains('open') ? '&#9650;' : '&#9660;';
+                    });
+                });
+            }
+
+            function startCountdown() {
+                const countDownDate = new Date("Aug 15, 2025 00:00:00").getTime();
+                const x = setInterval(function() {
+                    const now = new Date().getTime();
+                    const distance = countDownDate - now;
+
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    
+                    countdownEl.innerHTML = days + "ي " + hours + "س " + minutes + "د " + seconds + "ث ";
+
+                    if (distance < 0) {
+                        clearInterval(x);
+                        countdownEl.innerHTML = "لقد بدأ الدوري!";
+                    }
+                }, 1000);
+            }
+
+            // --- EVENT LISTENERS ---
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    switchTab(button.dataset.tab);
+                });
+            });
+
+            showTeamsBtn.addEventListener('click', () => {
+                teamsContent.classList.remove('hidden');
+                individualsContent.classList.add('hidden');
+                showTeamsBtn.classList.add('border-teal-500', 'text-teal-700');
+                showTeamsBtn.classList.remove('text-gray-500');
+                showIndividualsBtn.classList.remove('border-teal-500', 'text-teal-700');
+                showIndividualsBtn.classList.add('text-gray-500');
+            });
+
+            showIndividualsBtn.addEventListener('click', () => {
+                individualsContent.classList.remove('hidden');
+                teamsContent.classList.add('hidden');
+                showIndividualsBtn.classList.add('border-teal-500', 'text-teal-700');
+                showIndividualsBtn.classList.remove('text-gray-500');
+                showTeamsBtn.classList.remove('border-teal-500', 'text-teal-700');
+                showTeamsBtn.classList.add('text-gray-500');
+            });
+            
+            teamFilterSelect.addEventListener('change', (e) => {
+                renderIndividualsTable(e.target.value);
+            });
+
+            // --- INITIALIZATION ---
+            renderLeaderboards();
+            renderTitlesTable();
+            renderChallengesGames();
+            renderRules();
+            startCountdown();
+            setupAccordion('leagueTimelineContainer');
+            switchTab('home'); // Set initial tab
+        });
+    </script>
+</body>
+</html>
